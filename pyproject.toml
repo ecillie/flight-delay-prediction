@@ -1,0 +1,43 @@
+[project]
+name = "flightdelay-model"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "duckdb>=2.0.0",
+    "pandas>=3.1.0",
+    "pyarrow>=26.0.0",
+    "pydantic>=2.14.2",
+    "requests>=2.34.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "flightdelay"
+
+[project.scripts]
+flightdelay = "flightdelay.cli:main"
+
+[dependency-groups]
+dev = [
+    "pandas-stubs>=3.1.0.261029",
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+    "ty>=0.0.95",
+    "types-requests>=2.33.0.20261030",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py314"
+include = ["src/**/*.py", "tests/**/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ty.src]
+include = ["src/flightdelay", "src/data_collection", "tests"]

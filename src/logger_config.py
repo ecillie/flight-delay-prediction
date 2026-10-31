@@ -33,10 +33,7 @@ def setup_logger(name: str, log_name: str = "pipeline") -> logging.Logger:
         "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
     )
 
-    file_handler = logging.FileHandler(
-        log_dir / f"{log_name}.log",
-        encoding="utf-8"
-    )
+    file_handler = logging.FileHandler(log_dir / f"{log_name}.log", encoding="utf-8")
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
 

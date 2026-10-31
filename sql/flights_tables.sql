@@ -1,3 +1,6 @@
+-- Historical SQLite schema reference. Active storage uses Parquet and an
+-- ingestion manifest; create query views through flightdelay.storage.analytics.
+-- Do not use this file to initialize the active Parquet datasets.
 
 CREATE TABLE raw_ontime_flights (
     Year INTEGER,

@@ -2,6 +2,12 @@
 data/
 *.sqlite
 *.db
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+*.db-wal
+*.db-shm
+*.db-journal
 
 # logs
 logs/
@@ -9,15 +15,35 @@ logs/
 
 # Python cache
 __pycache__/
-*.pyc
+*.py[cod]
 .ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ty_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Python build outputs
+build/
+dist/
+*.egg-info/
+
+# generated validation reports; retain required baselines
+/docs/data-validation/*.json
+!/docs/data-validation/phase-4-inventory.json
+!/docs/data-validation/phase-4-validation.json
+/docs/data-validation/*.tmp
 
 # virtual environments
 .env
+.env.*
+!.env.example
+!.env.*.example
 .venv/
 venv/
 
 # system files
 .DS_Store
-
-# papers / notes
