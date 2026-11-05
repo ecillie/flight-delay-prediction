@@ -14,7 +14,7 @@ from flightdelay.migration.errors import SourceChangedError
 from flightdelay.storage.domain import BatchPair, Dataset, Partition
 from flightdelay.storage.errors import DataValidationError
 from flightdelay.storage.policy import find_partition_violation
-from flightdelay.storage.schemas import get_schemas
+from flightdelay.storage.schemas import flight_schemas, get_schemas
 from flightdelay.storage.util import file_hash
 
 
@@ -148,7 +148,10 @@ def inspect_source(source: LegacySource) -> Inventory:
     for task in tasks:
         if error := find_partition_violation(task.partition):
             raise error
-        expected = get_schemas(task.partition.dataset).cleaned.names
+        target_schemas = get_schemas(task.partition.dataset)
+        if task.partition.dataset == Dataset.FLIGHTS:
+            target_schemas = flight_schemas(legacy=True)
+        expected = target_schemas.cleaned.names
         added = {"source_rowid", "source_record_number", "record_id"}
         names = {name for name, _ in read_schema(source, task.table).columns}
         if names != set(expected) - added:
@@ -194,6 +197,12 @@ def convert_table(table: pa.Table, task: Task, first_record: int) -> BatchPair:
             raw=table.select(schemas.raw.names).cast(schemas.raw),
             cleaned=table.select(schemas.cleaned.names).cast(schemas.cleaned),
         )
+    for field in schemas.raw:
+        if field.name not in table.column_names and field.name not in (
+            "record_id",
+            "source_record_number",
+        ):
+            table = table.append_column(field, pa.nulls(table.num_rows, field.type))
     new_fields = {"record_id", "source_record_number"}
     raw = table.select([name for name in schemas.raw.names if name not in new_fields])
     numbers = list(range(first_record, first_record + table.num_rows))

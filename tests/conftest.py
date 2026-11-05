@@ -80,10 +80,20 @@ def published_flights(
 
 
 @pytest.fixture
-def bts_downloader(flight_frame: pd.DataFrame) -> PayloadDownloader:
+def marketing_frame(flight_frame: pd.DataFrame) -> pd.DataFrame:
+    frame = flight_frame.reindex(columns=flight_source_schema(marketing=True).names)
+    frame["Marketing_Airline_Network"] = ["DL", "AA", "UA"]
+    frame["Operating_Airline"] = ["9E", "OH", "OO"]
+    frame["DOT_ID_Marketing_Airline"] = [19790, 19805, 19977]
+    frame["Flight_Number_Marketing_Airline"] = [123, 456, 789]
+    return frame
+
+
+@pytest.fixture
+def bts_downloader(marketing_frame: pd.DataFrame) -> PayloadDownloader:
     stream = BytesIO()
     with zipfile.ZipFile(stream, "w") as archive:
-        archive.writestr("flights.csv", flight_frame.to_csv(index=False))
+        archive.writestr("flights.csv", marketing_frame.to_csv(index=False))
     return PayloadDownloader(payload=stream.getvalue())
 
 

@@ -25,6 +25,18 @@ uv run flightdelay compact-weather --year 2026
 uv run flightdelay audit
 ```
 
+`collect-flights` downloads BTS marketing-carrier data for January 2018 onward,
+including marketing, operating, and code-share carrier fields. Earlier months
+use reporting-carrier data. Both use the existing `flights` storage, manifest,
+and `raw_ontime_flights` SQL view. The existing `flights.json` defines both source
+schemas. Fields absent from a source are null; reporting-carrier fields are not
+inferred from marketing or operating carrier codes.
+
+Completed historical batches are still skipped and retain their IDs. This change
+applies to future downloads; it does not backfill marketing fields into existing
+batches. `--force` can replace a downloaded batch, but migrated legacy-ID batches
+remain protected from replacement.
+
 Omit `--airport` to collect a year for every airport with coordinates. Each
 completed airport/year is skipped on restart. HTTP errors, including rate limits,
 stop the command; rerun later to resume. Requests have a bounded timeout and do

@@ -25,7 +25,12 @@ from flightdelay.storage.policy import (
     find_partition_violation,
     validate_pair,
 )
-from flightdelay.storage.schemas import FileInfo, PartitionRecord, get_schemas
+from flightdelay.storage.schemas import (
+    FileInfo,
+    PartitionRecord,
+    flight_schemas,
+    get_schemas,
+)
 from flightdelay.storage.util import (
     file_hash,
     schema_hash,
@@ -108,7 +113,12 @@ def record_is_current(store: Store, record: PartitionRecord) -> bool:
         stat = path.stat()
         if (stat.st_size, stat.st_mtime_ns) != (info.size_bytes, info.mtime_ns):
             return False
-        if info.schema_sha256 != schema_hash(schema):
+        accepted_hashes = {schema_hash(schema)}
+        if record.dataset == Dataset.FLIGHTS:
+            legacy = flight_schemas(legacy=True)
+            legacy_schema = legacy.raw if info == record.raw else legacy.cleaned
+            accepted_hashes.add(schema_hash(legacy_schema))
+        if info.schema_sha256 not in accepted_hashes:
             return False
     return True
 

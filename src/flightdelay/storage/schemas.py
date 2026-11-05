@@ -35,16 +35,23 @@ class PartitionRecord(BaseModel):
     status: Literal["complete"] = "complete"
 
 
-def flight_source_schema() -> pa.Schema:
+def flight_source_schema(*, marketing: bool = False) -> pa.Schema:
     entries = json.loads(
         files("flightdelay.resources").joinpath("flights.json").read_text()
     )
     types = {"INTEGER": pa.int64(), "REAL": pa.float64(), "TEXT": pa.string()}
-    return pa.schema([pa.field(name, types[kind]) for name, kind in entries])
+    return pa.schema(
+        [
+            pa.field(name, types[kind])
+            for name, kind in entries["marketing" if marketing else "reporting"]
+        ]
+    )
 
 
-def flight_schemas() -> Schemas:
+def flight_schemas(*, legacy: bool = False) -> Schemas:
     source = flight_source_schema()
+    if not legacy:
+        source = pa.unify_schemas([source, flight_source_schema(marketing=True)])
     raw = pa.schema(
         [
             *source,

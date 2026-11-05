@@ -109,7 +109,22 @@ def register_dataset(
         ).create_view(name)
         return
     paths = [str(store.resolve(record.cleaned.relative_path)) for record in records]
-    connection.read_parquet(paths, hive_partitioning=False).create_view(name)
+    relation = connection.read_parquet(
+        paths, hive_partitioning=False, union_by_name=True
+    )
+    if dataset == Dataset.FLIGHTS:
+        sql_types = {
+            pa.string(): "VARCHAR",
+            pa.int64(): "BIGINT",
+            pa.float64(): "DOUBLE",
+        }
+        additions = [
+            f'CAST(NULL AS {sql_types[field.type]}) AS "{field.name}"'
+            for field in get_schemas(dataset).cleaned
+            if field.name not in relation.columns
+        ]
+        relation = relation.project(", ".join(["*", *additions]))
+    relation.create_view(name)
 
 
 def create_views(store: Store, connection: duckdb.DuckDBPyConnection) -> None:

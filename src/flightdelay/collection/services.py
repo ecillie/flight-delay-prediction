@@ -50,10 +50,13 @@ def collect_flights(
                 "downloading would renumber them"
             ),
         )
-    name = (
-        "On_Time_Reporting_Carrier_On_Time_Performance_1987_present_"
-        f"{partition.year}_{partition.month}.zip"
-    )
+    prefix = "On_Time_Reporting_Carrier_On_Time_Performance_1987_present"
+    if partition.year_value >= 2018:
+        beginning = "Beginning_January_2018"
+        if (partition.year, partition.month) == (2023, 12):
+            beginning = f"({beginning})"
+        prefix = f"On_Time_Marketing_Carrier_On_Time_Performance_{beginning}"
+    name = f"{prefix}_{partition.year}_{partition.month}.zip"
     url = f"{settings.bts_url}/{name}"
     logger.info("Downloading flights %s", partition.key)
     payload = downloader.fetch(url)

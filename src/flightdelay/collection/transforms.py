@@ -13,9 +13,12 @@ from flightdelay.storage.schemas import flight_source_schema, get_schemas
 
 
 def flight_csv_frames(payload: bytes, batch_rows: int) -> Generator[pd.DataFrame]:
-    schema = flight_source_schema()
+    schema = pa.unify_schemas(
+        [flight_source_schema(), flight_source_schema(marketing=True)]
+    )
     dtypes = {"int64": "Int64", "double": "Float64", "string": "string"}
     columns = {field.name: dtypes[str(field.type)] for field in schema}
+    columns["Operating_Airline "] = "string"
     with zipfile.ZipFile(BytesIO(payload)) as archive:
         csv_files = [
             name for name in archive.namelist() if name.lower().endswith(".csv")
@@ -26,12 +29,17 @@ def flight_csv_frames(payload: bytes, batch_rows: int) -> Generator[pd.DataFrame
             )
         with archive.open(csv_files[0]) as handle:
             for frame in pd.read_csv(handle, chunksize=batch_rows, dtype=columns):
-                if "Unnamed: 109" in frame.columns:
-                    if frame["Unnamed: 109"].notna().any():
+                frame = frame.rename(columns=str.strip)
+                source = flight_source_schema(
+                    marketing="Marketing_Airline_Network" in frame
+                )
+                trailing = f"Unnamed: {len(source)}"
+                if trailing in frame.columns:
+                    if frame[trailing].notna().any():
                         raise DataValidationError(
                             dataset="flights", reason="unexpected trailing column data"
                         )
-                    frame = frame.drop(columns=["Unnamed: 109"])
+                    frame = frame.drop(columns=[trailing])
                 yield frame
 
 
@@ -41,7 +49,7 @@ def prepare_flight_pair(
     first_record: int,
     legacy_ids: pa.Array | None = None,
 ) -> BatchPair:
-    schema = flight_source_schema()
+    schema = flight_source_schema(marketing="Marketing_Airline_Network" in frame)
     if set(frame.columns) != set(schema.names):
         raise DataValidationError(
             dataset="flights", reason="source columns differ from schema"
@@ -68,7 +76,10 @@ def prepare_flight_pair(
     for name, array in additions:
         raw = raw.append_column(name, array)
     schemas = get_schemas(Dataset.FLIGHTS)
-    raw = raw.cast(schemas.raw)
+    for field in schemas.raw:
+        if field.name not in raw.column_names:
+            raw = raw.append_column(field, pa.nulls(count, field.type))
+    raw = raw.select(schemas.raw.names).cast(schemas.raw)
     cleaned = raw.append_column(
         "CRSDepHour", pa.array(scheduled_hours(frame["CRSDepTime"]), pa.int64())
     )
